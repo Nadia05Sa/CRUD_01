@@ -1,0 +1,137 @@
+package mx.edu.utez.dao;
+
+import mx.edu.utez.model.Productos;
+import mx.edu.utez.utis.Conexion;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+public class ProductosDao {
+
+    private Connection connection;
+
+    public ProductosDao() {
+        this.connection = Conexion.getConnection();
+    }
+
+    public int agregarProductoYObtenerID(Productos producto) {
+        String query = "INSERT INTO Productos (ID_Categoria, Nombre, Descripcion, Precio, Stock, Fecha_creacion, ID_Marca, Imagen, Estado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement stmt = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+
+            stmt.setString(2, producto.getNombre());
+            stmt.setString(3, producto.getDescripcion());
+            stmt.setFloat(4, producto.getPrecio());
+            stmt.setInt(5, producto.getStock());
+            stmt.setDate(6, producto.getFecha_Creacion());
+
+            stmt.setString(8, producto.getImagen());
+            stmt.setBoolean(9, producto.getEstado());
+
+            int rowsAffected = stmt.executeUpdate();
+
+            if (rowsAffected > 0) {
+                try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        return generatedKeys.getInt(1);
+                    }
+                }
+            }
+            return -1;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return -1;
+        }
+    }
+
+    // Método para obtener todos los productos
+    public List<Productos> obtenerTodosLosProductos() {
+        List<Productos> productosList = new ArrayList<>();
+        String query = "SELECT * FROM Productos WHERE Estado = true";
+
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
+
+            while (rs.next()) {
+                Productos producto = new Productos(
+                        rs.getInt("ID_Producto"),
+                        rs.getString("Nombre"),
+                        rs.getString("Descripcion"),
+                        rs.getFloat("Precio"),  // Cambiado a float
+                        rs.getInt("Stock"),
+                        rs.getDate("Fecha_creacion"),
+                        rs.getString("Imagen"),
+                        rs.getBoolean("Estado")
+                );
+                productosList.add(producto);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return productosList;
+    }
+
+    // Método para deshabilitar una productos por ID
+    public boolean deshabilitarProducto(int ID_Producto) {
+        String query = "UPDATE Productos SET Estado = '0' WHERE ID_Producto = ?";
+        try (Connection conn = Conexion.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            pstmt.setInt(1, ID_Producto);
+
+            int rowsAffected = pstmt.executeUpdate();
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // Método para habilitar una productos por ID
+    public boolean habilitarProducto(int ID_Producto) {
+        String query = "UPDATE Productos SET Estado = '1' WHERE ID_Producto = ?";
+        try (Connection conn = Conexion.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            pstmt.setInt(1, ID_Producto);
+
+            int rowsAffected = pstmt.executeUpdate();
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // Método para obtener un producto por su ID
+    public Productos getProductoById(int idProducto) {
+        Productos producto = null;
+        String query = "SELECT * FROM Productos WHERE ID_Producto = ?";
+
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, idProducto);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    producto = new Productos(
+                            rs.getInt("ID_Producto"),
+                            rs.getString("Nombre"),
+                            rs.getString("Descripcion"),
+                            rs.getFloat("Precio"),  // Cambiado a float
+                            rs.getInt("Stock"),
+                            rs.getDate("Fecha_creacion"),
+                            rs.getString("Imagen"),
+                            rs.getBoolean("Estado")
+                    );
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return producto;
+    }
+}
